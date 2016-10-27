@@ -306,12 +306,6 @@ const serverConfig = function webpackConfig(config): WebpackConfig {
     library: 'universal',
     libraryTarget: 'commonjs2'
   };
-  // config.module = {
-  //   rules: [
-  //     { test: /ng-bootstrap/, loader: 'imports-loader?window=>global' },
-  //     ...MY_SERVER_RULES
-  //   ],
-  // };
   config.externals = ignoreAlias(config);
   config.node = {
     global: true,
