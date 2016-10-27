@@ -3,14 +3,14 @@ import './rxjs.imports';
 
 import { enableProdMode } from '@angular/core';
 import { platformUniversalDynamic } from 'angular2-universal';
-import { AppModule } from './app/app.module.universal.browser';
+import { AppModuleUniversal } from './app/app.module.universal.browser';
 
 if ('production' === ENV) {
   enableProdMode();
 }
 
 export function main() {
-  return platformUniversalDynamic().bootstrapModule(AppModule)
+  return platformUniversalDynamic().bootstrapModule(AppModuleUniversal)
     .catch(err => console.log(err));
 }
 

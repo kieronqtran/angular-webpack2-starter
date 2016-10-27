@@ -40,6 +40,8 @@ const HMR = hasProcessFlag('hot');
 const PROD = EVENT.includes('prod');
 const UNIVERSAL = EVENT.includes('universal');
 
+const path = require('path');
+
 let port: number;
 if (!UNIVERSAL) {
   if (PROD) {
@@ -180,10 +182,10 @@ const commonConfig = function webpackConfig(): WebpackConfig {
   if (PROD) {
     config.plugins.push(
       new NoErrorsPlugin(),
-      new UglifyJsPlugin({
-        beautify: false,
-        comments: false
-      }),
+      // new UglifyJsPlugin({
+      //   beautify: false,
+      //   comments: false
+      // }),
       new CompressionPlugin({
         asset: '[path].gz[query]',
         algorithm: 'gzip',
@@ -295,32 +297,32 @@ const clientConfig = function webpackConfig(): WebpackConfig {
 
 } ();
 
-const serverConfig: WebpackConfig = {
-  target: 'node',
-  entry: './src/server',
-  output: {
+const serverConfig = function webpackConfig(config): WebpackConfig {
+  config.target = 'node';
+  config.entry = './src/server';
+  config.output = {
     filename: 'index.js',
     path: root('dist/server'),
+    library: 'universal',
     libraryTarget: 'commonjs2'
-  },
-  module: {
-    rules: [
-      { test: /ng-bootstrap/, loader: 'imports-loader?window=>global' },
-      ...MY_SERVER_RULES
-    ],
-  },
-  externals: includeClientPackages([
-    // include these client packages so we can transform their source with webpack loaders
-    ...MY_SERVER_INCLUDE_CLIENT_PACKAGES
-  ]),
-  node: {
+  };
+  // config.module = {
+  //   rules: [
+  //     { test: /ng-bootstrap/, loader: 'imports-loader?window=>global' },
+  //     ...MY_SERVER_RULES
+  //   ],
+  // };
+  config.externals = ignoreAlias(config);
+  config.node = {
     global: true,
     __dirname: true,
     __filename: true,
     process: true,
     Buffer: true
-  }
-};
+  };
+
+  return config;
+} (<WebpackConfig> {});
 
 const defaultConfig = {
   resolve: {
@@ -337,4 +339,38 @@ if (!UNIVERSAL) {
     webpackMerge({}, defaultConfig, commonConfig, clientConfig),
     webpackMerge({}, defaultConfig, commonConfig, serverConfig)
   ];
+}
+
+function ignoreAlias (config, log?) {
+  if (!config) return;
+  let aliass = [];
+  if (Array.isArray(config)) {
+    aliass = config;
+  } else if (('resolve' in config) && ('alias' in config.resolve)) {
+    aliass = Object.keys(config.resolve.alias);
+  }
+
+  return function (context, request, cb) {
+    if (aliass.includes(request)) {
+      if (log) { console.log('resolve.alias', request); }
+      return cb();
+    }
+    return checkExternal(context, request, cb);
+  };
+}
+
+function checkExternal(context, request, cb) {
+  // With AOT, ngfactory deep imports @angular/core/src/linker/ng_module_factory.js
+  // The problem with deep imports in angular now is they use esmodules, so we need
+  // to process this file and anything it depends on, so let's ensure anything @angular/
+  // is processed as there are dependencies of @angular/common as well (possibly others)
+  if (request.indexOf('@angular/') === 0) {
+    return cb();
+  }
+
+  // Check node import
+  if (!path.isAbsolute(request) && request.charAt(0) !== '.') {
+    return cb(null, 'commonjs ' + request);
+  }
+  return cb();
 }

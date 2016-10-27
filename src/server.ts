@@ -15,7 +15,7 @@ import { enableProdMode } from '@angular/core';
 import { createEngine } from 'angular2-express-engine';
 
 // App
-import { AppModule } from './app/app.module.universal.node';
+import { AppModuleServer } from './app/app.module.universal.node';
 import { routes } from './server.routes';
 import { HOST, UNIVERSAL_PORT } from '../constants';
 
@@ -42,7 +42,7 @@ function ngApp(req, res) {
   res.render('index', {
     req,
     res,
-    ngModule: AppModule,
+    ngModule: AppModuleServer,
     preboot: true,
     baseUrl: '/',
     requestUrl: req.originalUrl,
